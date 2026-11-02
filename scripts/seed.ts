@@ -474,6 +474,13 @@ async function main() {
       if (events.length === 0) continue;
       const res = await applySync({ id, role: "officer" }, { clientNow: nowReal.toISOString(), events }, nowReal, null);
       synced += res.filter((r) => r.status === "accepted").length;
+      // Phones sync seconds after logging, or later when they were offline.
+      for (const e of events) {
+        const delayMs = e.createdOffline ? rng.int(15, 90) * 60_000 : rng.int(3, 60) * 1000;
+        const syncedAt = new Date(Math.min(new Date(e.occurredAt).getTime() + delayMs, nowReal.getTime()));
+        await db.update(schema.outcomes).set({ syncedAt }).where(sql`id = ${e.id}`);
+        await db.update(schema.contactAttempts).set({ syncedAt }).where(sql`id = ${e.id}`);
+      }
     }
   }
 

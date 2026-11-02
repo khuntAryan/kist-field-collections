@@ -288,13 +288,13 @@ export function translate(lang: Lang, key: MessageKey, params: Record<string, st
 
 const REASONS: Record<ReasonKey, Record<Lang, string>> = {
   crossing_soon: { en: "Crosses {next} DPD in {days} days", hi: "{days} दिन में {next} DPD पार होगा" },
-  dpd_high: { en: "{dpd} days overdue", hi: "{dpd} दिन से बकाया" },
-  dpd_low: { en: "Only {dpd} days overdue", hi: "सिर्फ़ {dpd} दिन बकाया" },
+  dpd_high: { en: "{dpd} {dayWord} overdue", hi: "{dpd} दिन से बकाया" },
+  dpd_low: { en: "Only {dpd} {dayWord} overdue", hi: "सिर्फ़ {dpd} दिन बकाया" },
   broken_promises: { en: "{n} broken {promises} in 90 days", hi: "90 दिन में {n} {promises}" },
   poor_payment_history: { en: "Paid only {paid} of last 6 EMIs on time", hi: "पिछली 6 में से सिर्फ़ {paid} किस्त समय पर" },
   good_payment_history: { en: "Paid {paid} of last 6 EMIs on time", hi: "पिछली 6 में से {paid} किस्त समय पर" },
   no_recent_payment: { en: "No payment for {days} days", hi: "{days} दिन से कोई भुगतान नहीं" },
-  recent_payment: { en: "Paid something {days} days ago", hi: "{days} दिन पहले कुछ भुगतान किया" },
+  recent_payment: { en: "Paid something {days} {daysWord} ago", hi: "{days} दिन पहले कुछ भुगतान किया" },
   unreachable: { en: "Not reachable {n} {times} this week", hi: "इस हफ़्ते {n} बार संपर्क नहीं हुआ" },
   high_exposure: { en: "{amount} outstanding, a large amount", hi: "{amount} बकाया, बड़ी रकम" },
   small_exposure: { en: "Smaller loan, {amount} outstanding", hi: "छोटा लोन, {amount} बकाया" },
@@ -310,6 +310,8 @@ export function reasonText(reason: { key: string; params: Record<string, string 
   const n = Number(params.n ?? 0);
   params.promises = lang === "hi" ? (n === 1 ? "वादा टूटा" : "वादे टूटे") : n === 1 ? "promise" : "promises";
   params.times = n === 1 ? "time" : "times";
+  params.dayWord = Number(params.dpd) === 1 ? "day" : "days";
+  params.daysWord = Number(params.days) === 1 ? "day" : "days";
   return entry[lang].replace(/\{(\w+)\}/g, (_, k: string) => String(params[k] ?? ""));
 }
 
