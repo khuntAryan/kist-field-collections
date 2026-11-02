@@ -10,7 +10,7 @@ export function trueRollLogit(input: ScoreInput, quality: number): number {
   const k = daysToNextBucket(input.dpd);
   const paid = input.paidRatio6m ?? 0.78 + 0.1 * quality;
   const months = (input.daysSinceLastPayment ?? input.dpd + 30) / 30;
-  let z = -1.9;
+  let z = -0.8;
   z += 1.7 * Math.exp(-k / 6);
   z += input.dpd >= 31 ? 0.55 : 0;
   z += 0.55 * Math.min(input.brokenPromises90d, 3);
