@@ -1,0 +1,55 @@
+{
+  "version": "v1-synthetic-2026-11",
+  "trainedOn": "8000 synthetic loan-days (seed 20261102); see scripts/train-model.ts",
+  "features": [
+    "days_to_next_bucket",
+    "dpd_scaled",
+    "bucket_31_plus",
+    "broken_promises_90d",
+    "paid_ratio_6m",
+    "months_since_payment",
+    "unreachable_7d",
+    "log_outstanding",
+    "has_upcoming_promise"
+  ],
+  "mean": [
+    15.55609,
+    0.89198,
+    0.29641,
+    0.48359,
+    0.77073,
+    1.5928,
+    0.42297,
+    -0.23355,
+    0.25656
+  ],
+  "std": [
+    8.67293,
+    0.69546,
+    0.45667,
+    0.72071,
+    0.14946,
+    0.89869,
+    0.68054,
+    0.54739,
+    0.43674
+  ],
+  "weights": [
+    -0.29445,
+    -0.08581,
+    0.27871,
+    0.47168,
+    -0.66637,
+    0.37758,
+    0.28411,
+    0.16112,
+    -0.3695
+  ],
+  "bias": -1.17129,
+  "metrics": {
+    "auc": 0.771,
+    "n": 6400,
+    "holdoutN": 1600,
+    "positiveRate": 0.281
+  }
+}
