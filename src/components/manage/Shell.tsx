@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Activity, CalendarClock, FileSpreadsheet, LayoutDashboard, ListOrdered, LogOut, Menu, ShieldCheck, X } from "lucide-react";
 import { cx } from "@/components/ui";
 
@@ -31,7 +31,6 @@ export function ManageShell({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
-  useEffect(() => setOpen(false), [pathname]);
 
   async function switchBranch(branch: string) {
     setSwitching(true);
@@ -81,6 +80,7 @@ export function ManageShell({
             <li key={href}>
               <Link
                 href={href}
+                onClick={() => setOpen(false)}
                 aria-current={active ? "page" : undefined}
                 className={cx(
                   "flex h-10 items-center gap-3 rounded-[var(--radius-control)] px-3 text-[0.95rem]",

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Banknote, CalendarClock, Lock, MapPin, PhoneOff, Scale, Send, TriangleAlert, X } from "lucide-react";
 import { Banner, Button, cx } from "@/components/ui";
 import { formatINR, maskPhone } from "@/lib/format";
@@ -359,7 +359,6 @@ export function ReminderSheet({
   loan,
   templates,
   t,
-  lang,
   now,
   window: win,
   officerName,
@@ -386,22 +385,22 @@ export function ReminderSheet({
   });
   const [msgLang, setMsgLang] = useState<"hi" | "en">(loan.language);
   const template = templates.find((x) => x.purpose === purpose && x.language === msgLang);
-  const draft = useMemo(() => {
-    if (!template) return "";
+  const draftFor = (l: "hi" | "en") => {
+    const tpl = templates.find((x) => x.purpose === purpose && x.language === l);
+    if (!tpl) return "";
     try {
-      return renderTemplate(template.body, {
+      return renderTemplate(tpl.body, {
         contact: loan.contactName,
         business: loan.name,
         amount: formatINR(p && p.status !== "kept" ? p.amount : loan.overdueAmount),
-        date: formatShortDate(p ? p.date : today, msgLang),
+        date: formatShortDate(p ? p.date : today, l),
         officer: officerName.split(" ")[0],
       });
     } catch {
       return "";
     }
-  }, [template, loan, p, today, msgLang, officerName]);
-  const [body, setBody] = useState(draft);
-  useEffect(() => setBody(draft), [draft]);
+  };
+  const [body, setBody] = useState(() => draftFor(loan.language));
 
   const blocked = findBlockedPhrases(body);
   const tooLong = body.length > MAX_MESSAGE_LENGTH;
@@ -414,7 +413,10 @@ export function ReminderSheet({
         {(["hi", "en"] as const).map((l) => (
           <button
             key={l}
-            onClick={() => setMsgLang(l)}
+            onClick={() => {
+              setMsgLang(l);
+              setBody(draftFor(l));
+            }}
             aria-pressed={msgLang === l}
             className={cx("h-10 rounded-[var(--radius-control)] border text-sm font-semibold", msgLang === l ? "border-accent bg-accent-soft text-accent" : "border-rule-strong")}
           >

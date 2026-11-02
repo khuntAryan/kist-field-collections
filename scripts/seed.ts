@@ -50,7 +50,6 @@ type SimLoan = {
 };
 
 const officerIds = new Map(OFFICERS.map((o) => [o.key, randomUUID()]));
-const officerById = new Map(OFFICERS.map((o) => [officerIds.get(o.key)!, o]));
 const loans: SimLoan[] = [];
 const snapshots: { loanId: string; asOfDate: ISODate; dpd: number; outstanding: number; branchId: string; officerId: string | null }[] = [];
 const scoreRows: (typeof schema.scoreSnapshots.$inferInsert)[] = [];
@@ -232,7 +231,8 @@ function simulate() {
     }
     for (const [id, o] of Object.entries(SAMPLE_OVERRIDES)) {
       if (daysBetween(day, TODAY) === o.enter) {
-        const { enter: _enter, ...fields } = o;
+        const { enter, ...fields } = o;
+        void enter;
         const l = newLoan(o.branchId!, day, { ...fields, id, scripted: true, lastPaymentDate: addDays(day, -31) });
         l.address = `Plot ${rng.int(2, 240)}, ${rng.pick(AREAS[l.branchId])}, ${BRANCHES.find((b) => b.id === l.branchId)!.city} ${l.pincode}`;
         l.officerId = officerIds.get(SAMPLE_OFFICER[id])!;

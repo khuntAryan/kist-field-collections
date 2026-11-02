@@ -42,7 +42,8 @@ export async function settlePromises(tx: DB, asOf: ISODate, curedLoanIds: string
       asOf,
     );
     if (state === "open") continue;
-    state === "kept" ? kept++ : broken++;
+    if (state === "kept") kept++;
+    else broken++;
     await tx.update(schema.promises).set({ status: state, resolvedAt: at }).where(eq(schema.promises.id, p.id));
   }
   return { kept, broken };

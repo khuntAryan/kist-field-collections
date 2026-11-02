@@ -329,7 +329,8 @@ export async function getPromiseTracker(scope: string | null, now: Date) {
   const brokenByOfficer = new Map<string, { name: string; broken: number; kept: number }>();
   for (const r of withReminder.filter((x) => x.status !== "open")) {
     const e = brokenByOfficer.get(r.officerId) ?? { name: r.officer, broken: 0, kept: 0 };
-    r.status === "broken" ? e.broken++ : e.kept++;
+    if (r.status === "broken") e.broken++;
+    else e.kept++;
     brokenByOfficer.set(r.officerId, e);
   }
   return {

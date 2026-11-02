@@ -63,7 +63,10 @@ export default async function ActivityPage({ searchParams }: { searchParams: Pro
   const days = Array.from({ length: 7 }, (_, i) => addDays(today, -i));
   const q = (o: Record<string, string | null>) => {
     const p = new URLSearchParams({ ...(date !== today ? { date } : {}), ...(officerId ? { officer: officerId } : {}), ...(tab === "audit" ? { tab } : {}) });
-    for (const [k, v] of Object.entries(o)) v === null ? p.delete(k) : p.set(k, v);
+    for (const [k, v] of Object.entries(o)) {
+      if (v === null) p.delete(k);
+      else p.set(k, v);
+    }
     const s = p.toString();
     return s ? `?${s}` : "";
   };

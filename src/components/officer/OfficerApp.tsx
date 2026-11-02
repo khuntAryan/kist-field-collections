@@ -26,7 +26,7 @@ import { OutcomeSheet, ReminderSheet, type OutcomeDraft } from "./sheets";
 
 type Tab = "today" | "promises" | "sync";
 type View = { name: Tab } | { name: "loan"; id: string; from: Tab };
-type SheetState = { kind: "outcome" | "reminder"; loanId: string } | null;
+type SheetState = { kind: "outcome" | "reminder"; loanId: string; channel?: "visit" | "call" } | null;
 type Toast = { text: string; undoId?: string; tone?: "neutral" | "late" | "due" };
 
 const UNDO_MS = 6000;
@@ -60,8 +60,10 @@ export function OfficerApp({ officer }: { officer: { id: string; name: string; l
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sheetRef = useRef<SheetState>(null);
   const viewRef = useRef<View>(view);
-  sheetRef.current = sheet;
-  viewRef.current = view;
+  useEffect(() => {
+    sheetRef.current = sheet;
+    viewRef.current = view;
+  }, [sheet, view]);
 
   const showToast = useCallback((toastValue: Toast, ms = UNDO_MS) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -177,6 +179,14 @@ export function OfficerApp({ officer }: { officer: { id: string; name: string; l
     document.documentElement.lang = lang === "hi" ? "hi-IN" : "en-IN";
   }, [lang]);
 
+  // Entries wait out their undo window; send them the moment it closes rather than at the next timer tick.
+  useEffect(() => {
+    const waiting = outbox.map((o) => o.notBefore).filter((t) => t > Date.now());
+    if (!online || waiting.length === 0) return;
+    const timer = setTimeout(() => pushSoon(0), Math.min(...waiting) - Date.now() + 250);
+    return () => clearTimeout(timer);
+  }, [outbox, online, pushSoon]);
+
   // Android back button: close the sheet, then leave the borrower page.
   useEffect(() => {
     const onPop = () => {
@@ -229,6 +239,7 @@ export function OfficerApp({ officer }: { officer: { id: string; name: string; l
   };
   const openSheet = (s: NonNullable<SheetState>) => {
     history.pushState({ kist: "sheet" }, "");
+    sheetRef.current = s;
     setSheet(s);
   };
   const closeSheet = () => {
@@ -267,7 +278,9 @@ export function OfficerApp({ officer }: { officer: { id: string; name: string; l
     onLog: (loan: OfficerLoan) => {
       setGps(null);
       readLocation().then(setGps);
-      openSheet({ kind: "outcome", loanId: loan.id });
+      // Default to "call" if the officer tapped Call for this borrower in the last 20 minutes.
+      const called = lastCall.current[loan.id];
+      openSheet({ kind: "outcome", loanId: loan.id, channel: called && Date.now() - called < 20 * 60_000 ? "call" : "visit" });
     },
   };
 
@@ -325,7 +338,7 @@ export function OfficerApp({ officer }: { officer: { id: string; name: string; l
       /* offline: still clear the phone */
     }
     await clearAll();
-    window.location.href = "/login";
+    window.location.replace(`${window.location.origin}/login`);
   };
 
   const setDemoClock = async (time: string | null) => {
@@ -335,7 +348,6 @@ export function OfficerApp({ officer }: { officer: { id: string; name: string; l
 
   const dueToday = loans.filter((l) => l.promise && l.promise.status === "open" && l.promise.date === today).length;
   const sheetLoan = sheet ? loansById.get(sheet.loanId) : undefined;
-  const defaultChannel = sheet && lastCall.current[sheet.loanId] && Date.now() - lastCall.current[sheet.loanId] < 20 * 60_000 ? "call" : "visit";
 
   const notices = (
     <>
@@ -491,7 +503,7 @@ export function OfficerApp({ officer }: { officer: { id: string; name: string; l
       </nav>
 
       {sheet?.kind === "outcome" && sheetLoan && (
-        <OutcomeSheet loan={sheetLoan} t={t} lang={lang} now={now} window={win} defaultChannel={defaultChannel} gps={gps} onSave={(d) => saveOutcome(sheetLoan, d)} onClose={closeSheet} />
+        <OutcomeSheet loan={sheetLoan} t={t} lang={lang} now={now} window={win} defaultChannel={sheet.channel ?? "visit"} gps={gps} onSave={(d) => saveOutcome(sheetLoan, d)} onClose={closeSheet} />
       )}
       {sheet?.kind === "reminder" && sheetLoan && day && (
         <ReminderSheet
