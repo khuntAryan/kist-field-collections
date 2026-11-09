@@ -2,6 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { HttpError } from "./auth/session";
+import { dbProblem, DB_PROBLEM_MESSAGE } from "./db/errors";
 
 /** Wraps an API handler so errors become clear JSON responses instead of stack traces. */
 export function handle<A extends unknown[]>(fn: (...args: A) => Promise<Response>) {
@@ -19,6 +20,8 @@ export function handle<A extends unknown[]>(fn: (...args: A) => Promise<Response
         );
       }
       console.error(err);
+      const problem = dbProblem(err);
+      if (problem) return NextResponse.json({ error: `database_${problem}`, message: DB_PROBLEM_MESSAGE[problem] }, { status: 503 });
       return NextResponse.json({ error: "server_error", message: "Something went wrong on the server. Try again." }, { status: 500 });
     }
   };
