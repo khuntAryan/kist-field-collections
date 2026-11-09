@@ -48,22 +48,26 @@ export async function destroySession() {
 export async function getSessionUser(): Promise<SessionUser | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
+  let userId: string;
   try {
     const { payload } = await jwtVerify(token, secret(), { algorithms: ["HS256"] });
     if (!payload.sub) return null;
-    const [u] = await db.select().from(schema.users).where(eq(schema.users.id, payload.sub)).limit(1);
-    if (!u || !u.active) return null;
-    return {
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      role: u.role,
-      branchId: u.branchId,
-      language: u.language === "en" ? "en" : "hi",
-    };
+    userId = payload.sub;
   } catch {
-    return null;
+    return null; // expired, tampered or signed with another secret: treat as signed out
   }
+  // A database error is not "signed out": let it surface as a 503 or the error page, so a brief
+  // outage does not send people to the sign-in screen or tell officers to sign in again.
+  const [u] = await db.select().from(schema.users).where(eq(schema.users.id, userId)).limit(1);
+  if (!u || !u.active) return null;
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    branchId: u.branchId,
+    language: u.language === "en" ? "en" : "hi",
+  };
 }
 
 export function homeFor(role: Role) {

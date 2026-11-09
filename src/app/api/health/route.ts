@@ -18,8 +18,10 @@ export async function GET() {
     );
   } catch (err) {
     const problem = dbProblem(err) ?? "error";
+    // The Postgres error code (e.g. 53300) helps diagnose without exposing anything secret.
+    const code = (err as { code?: unknown; cause?: { code?: unknown } }).code ?? (err as { cause?: { code?: unknown } }).cause?.code ?? null;
     return NextResponse.json(
-      { ok: false, database: problem, message: problem === "error" ? "Database check failed." : DB_PROBLEM_MESSAGE[problem], region: process.env.VERCEL_REGION ?? null },
+      { ok: false, database: problem, code, message: problem === "error" ? "Database check failed." : DB_PROBLEM_MESSAGE[problem], region: process.env.VERCEL_REGION ?? null },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }

@@ -79,7 +79,7 @@ Seeding over the internet takes a minute or two. Re-run the seed on the day of a
 
 ### B4. Check
 
-Open `<your URL>/api/health`. It should show `"ok": true`, `"database": "ok"` and `"region": "bom1"`. If it says `empty` or `not_migrated`, run B2 against the production database; if it says `unreachable` or `wrong_password`, recheck `DATABASE_URL`. Then sign in with a demo account and confirm the officer list loads.
+Open `<your URL>/api/health`. It should show `"ok": true`, `"database": "ok"` and `"region": "bom1"`. If it says `empty` or `not_migrated`, run B2 against the production database; if it says `unreachable` or `wrong_password`, recheck `DATABASE_URL`. If it briefly says `busy`, the database ran out of connections: Supabase's session pooler allows about 15, shared by every running copy of the app. It clears within seconds; if it keeps happening, lower `DATABASE_POOL_MAX` to 2. Then sign in with a demo account and confirm the officer list loads.
 
 ## C. Environment variables
 
@@ -92,7 +92,7 @@ Names only. Values are never committed; `.env.local` is git-ignored.
 | `DEMO_PASSWORD` | For the seed and demo mode | Password given to every demo account by `npm run db:seed`. In demo mode the sign-in page's one-tap demo buttons use it. |
 | `DEMO_MODE` | Yes | `true` shows the demo accounts on the sign-in page, simulates calls instead of dialling, and enables the reviewer demo clock. Use `false` for a real rollout. |
 | `DATABASE_CA_CERT` | Optional | PEM certificate of the database's CA (newlines as `\n`) to verify the connection. |
-| `DATABASE_POOL_MAX` | Optional | Connections per server instance (default 5; 1-3 suits serverless). |
+| `DATABASE_POOL_MAX` | Optional | Connections per server instance. Default 3 on Vercel, 5 elsewhere. |
 | `TEST_DATABASE_URL` | Tests only | A separate, disposable database for `npm test`. Never point it at real data. |
 
 No AI or messaging API keys are needed: the priority model runs inside the app, and SMS and WhatsApp are simulated.

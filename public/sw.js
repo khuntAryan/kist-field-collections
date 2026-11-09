@@ -101,6 +101,11 @@ self.addEventListener("fetch", (event) => {
         try {
           const res = await Promise.race([fetch(req), timeout(isApp ? 5000 : 10000)]);
           if (isApp && res.ok && !res.redirected) cache.put("/app", res.clone());
+          if (isApp && res.status >= 500) {
+            // Server or database trouble: the saved app still works and syncs once the server is back.
+            const saved = await cache.match("/app");
+            if (saved) return saved;
+          }
           return res;
         } catch {
           if (isApp) {
