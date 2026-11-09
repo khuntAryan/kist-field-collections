@@ -69,7 +69,7 @@ DATABASE_URL="postgresql://...supabase...:5432/postgres?sslmode=require" npm run
 DATABASE_URL="postgresql://...supabase...:5432/postgres?sslmode=require" DEMO_PASSWORD="Kist@Demo2026" npm run db:seed
 ```
 
-Seeding over the internet takes a minute or two. Re-run the seed on the day of a review so the demo's "today" matches the calendar.
+Seeding over the internet takes a minute or two. After that, B5 keeps the demo's "today" matching the calendar without anyone re-seeding by hand.
 
 ### B3. App
 
@@ -80,6 +80,22 @@ Seeding over the internet takes a minute or two. Re-run the seed on the day of a
 ### B4. Check
 
 Open `<your URL>/api/health`. It should show `"ok": true`, `"database": "ok"` and `"region": "bom1"`. If it says `empty` or `not_migrated`, run B2 against the production database; if it says `unreachable` or `wrong_password`, recheck `DATABASE_URL`. If it briefly says `busy`, the database ran out of connections: Supabase's session pooler allows about 15, shared by every running copy of the app. It clears within seconds; if it keeps happening, lower `DATABASE_POOL_MAX` to 2. Then sign in with a demo account and confirm the officer list loads.
+
+### B5. Keep the live demo current
+
+The demo data is anchored to the day the seed runs, so a reviewer opening it a week later would see an old "today". The GitHub Actions workflow `.github/workflows/demo-data.yml` fixes that:
+
+- **Every night at 2:00 am IST** it resets the demo database: today's overdue file, fresh dates, and earlier reviewers' test entries cleared.
+- **Every hour from 10:20 am to 6:20 pm IST, Monday to Saturday,** it adds the other officers' field work up to that hour (`npm run demo:tick`), so the manager screens show a working day in progress. It never adds entries for Rahul, the one-tap officer account, so a reviewer using it sees only their own.
+
+To turn it on, add two repository secrets in GitHub (Settings > Secrets and variables > Actions > New repository secret):
+
+| Secret | Value |
+|---|---|
+| `DATABASE_URL` | The same Supabase session pooler URL that Vercel uses, ending in `?sslmode=require` |
+| `DEMO_PASSWORD` | The same value as `DEMO_PASSWORD` on Vercel |
+
+Then open Actions > Refresh demo data > Run workflow, choose `reset`, and run it once to check. Without the secrets the workflow skips itself. Never give it a database with real data: the reset wipes it. GitHub pauses scheduled workflows in a public repository after 60 days with no commits; re-enable it from the Actions tab if that happens.
 
 ## C. Environment variables
 

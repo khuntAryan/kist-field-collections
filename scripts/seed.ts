@@ -22,7 +22,6 @@ import { sql } from "drizzle-orm";
 import { db, schema } from "../src/server/db";
 import { hashPassword } from "../src/server/auth/password";
 import { commitImport } from "../src/server/services/import";
-import { applySync } from "../src/server/services/sync";
 import { scoreLoan, compareForList } from "../src/lib/scoring/score";
 import { daysToNextBucket, type ScoreInput } from "../src/lib/scoring/features";
 import { assignLoans } from "../src/lib/assignment";
@@ -30,6 +29,7 @@ import { addDays, daysBetween, istDate, istDateTime, istParts, weekStart, type I
 import { renderTemplate } from "../src/lib/templates";
 import { computeRollRate } from "../src/lib/roll-rate";
 import { createRng } from "./sim/rng";
+import { FIELD_END_MIN, FIELD_START_MIN, playFieldWork } from "./sim/field-day";
 import { samplePaidRatio, sampleOutstanding, trueRollLogit } from "./sim/ground-truth";
 import { AREAS, BRANCHES, HEAD, MANAGERS, OFFICERS, PINCODES, SURNAMES, TEMPLATES, TRADES, companyCode, email } from "./sim/world";
 
@@ -441,46 +441,13 @@ async function main() {
   // Today's field work so far, through the same sync service the phones use.
   const nowReal = new Date();
   const nowMin = TODAY === istDate(nowReal) ? istParts(nowReal).minuteOfDay : 24 * 60;
-  const startMin = 9 * 60 + 15;
-  const endMin = Math.min(nowMin - 5, 18 * 60 + 30);
+  const endMin = Math.min(nowMin - 5, FIELD_END_MIN);
   let synced = 0;
-  if (endMin > startMin && weekday(TODAY) !== 0) {
-    const fraction = (endMin - startMin) / (18 * 60 + 30 - startMin);
+  if (endMin > FIELD_START_MIN && weekday(TODAY) !== 0) {
+    const fraction = (endMin - FIELD_START_MIN) / (FIELD_END_MIN - FIELD_START_MIN);
     for (const o of OFFICERS) {
-      const id = officerIds.get(o.key)!;
-      const list = await db.query.loans.findMany({ where: (l, { and, eq }) => and(eq(l.assignedOfficerId, id), eq(l.status, "overdue")) });
-      const scores = await db.query.scoreSnapshots.findMany({ where: (s, { eq }) => eq(s.asOfDate, TODAY) });
-      const scoreOf = new Map(scores.map((s) => [s.loanId, s.score]));
-      const ordered = list
-        .filter((l) => !["LN-10293", "LN-10871", "LN-11930"].includes(l.id))
-        .map((l) => ({ ...l, score: scoreOf.get(l.id) ?? 0 }))
-        .sort(compareForList);
       const count = Math.round(fraction * rng.int(7, 10));
-      const events = ordered.slice(0, count).map((l) => {
-        const at = randomTime(TODAY, startMin, endMin);
-        const r = rng.next();
-        const sim = loans.find((x) => x.id === l.id)!;
-        const type = r < 0.22 ? "paid" : r < 0.6 ? "promise" : "not_reachable";
-        const channel = rng.chance(0.6) ? "visit" : "call";
-        return {
-          id: randomUUID(), kind: "outcome", loanId: l.id, deviceTime: at.toISOString(), occurredAt: at.toISOString(), serverOffsetMs: 0,
-          createdOffline: rng.chance(0.2), type, channel,
-          reason: type === "not_reachable" ? rng.pick(["no_answer", "switched_off", "shop_closed"]) : type === "paid" ? "emi" : undefined,
-          amount: type === "paid" ? l.emi : type === "promise" ? l.emi : undefined,
-          promisedDate: type === "promise" ? addDays(TODAY, rng.int(1, 6)) : undefined,
-          gps: channel === "visit" ? { status: "ok", lat: jitter(sim.lat, 0.0004), lng: jitter(sim.lng, 0.0004), accuracy: rng.int(6, 30) } : { status: "ok", lat: jitter(sim.lat, 0.02), lng: jitter(sim.lng, 0.02), accuracy: rng.int(10, 60) },
-        };
-      });
-      if (events.length === 0) continue;
-      const res = await applySync({ id, role: "officer" }, { clientNow: nowReal.toISOString(), events }, nowReal, null);
-      synced += res.filter((r) => r.status === "accepted").length;
-      // Phones sync seconds after logging, or later when they were offline.
-      for (const e of events) {
-        const delayMs = e.createdOffline ? rng.int(15, 90) * 60_000 : rng.int(3, 60) * 1000;
-        const syncedAt = new Date(Math.min(new Date(e.occurredAt).getTime() + delayMs, nowReal.getTime()));
-        await db.update(schema.outcomes).set({ syncedAt }).where(sql`id = ${e.id}`);
-        await db.update(schema.contactAttempts).set({ syncedAt }).where(sql`id = ${e.id}`);
-      }
+      synced += await playFieldWork({ officerId: officerIds.get(o.key)!, day: TODAY, fromMin: FIELD_START_MIN, toMin: endMin, count, rng, now: nowReal });
     }
   }
 

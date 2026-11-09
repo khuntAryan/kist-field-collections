@@ -1,0 +1,75 @@
+# Keeps the live demo's data current, so reviewers see "today" whenever they open it.
+#
+# The demo data is anchored to the day the seed runs. This workflow:
+# - resets the demo database every night at 2:00 am IST: today's overdue file, fresh dates,
+#   and any test entries from earlier reviewers cleared;
+# - tops up the day every hour from 10:20 am to 6:20 pm IST, Monday to Saturday, playing the
+#   other officers' field work forward (the demo officer, Rahul, is left to the reviewer).
+# It can also be run by hand: Actions > Refresh demo data > Run workflow.
+#
+# Needs two repository secrets (Settings > Secrets and variables > Actions):
+#   DATABASE_URL   the demo database (Supabase session pooler URL, with ?sslmode=require)
+#   DEMO_PASSWORD  the demo accounts' password (must match DEMO_PASSWORD on Vercel)
+# Without them the workflow skips itself, so forks and clones are not affected.
+# Never point DATABASE_URL here at a database with real data: the reset wipes it.
+
+name: Refresh demo data
+
+on:
+  schedule:
+    - cron: "30 20 * * *" # 2:00 am IST
+    - cron: "50 4-12 * * 1-6" # 10:20 am to 6:20 pm IST, Monday to Saturday
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "reset: fresh demo data for today. top-up: add field work up to now."
+        type: choice
+        options: [reset, top-up]
+        default: reset
+
+concurrency:
+  group: demo-data
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
+      TASK: ${{ github.event_name == 'workflow_dispatch' && inputs.task || (github.event.schedule == '30 20 * * *' && 'reset' || 'top-up') }}
+    steps:
+      - name: Check the secrets are set
+        id: check
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$DEMO_PASSWORD" ]; then
+            echo "::notice::DATABASE_URL or DEMO_PASSWORD is not set as a repository secret, so there is nothing to refresh."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.check.outputs.ready == 'true'
+
+      - uses: actions/setup-node@v7
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        if: steps.check.outputs.ready == 'true'
+        run: npm ci --no-audit --no-fund
+
+      - name: Reset the demo data for today
+        if: steps.check.outputs.ready == 'true' && env.TASK == 'reset'
+        run: npm run db:migrate && npm run db:seed
+
+      - name: Add today's field work up to now
+        if: steps.check.outputs.ready == 'true' && env.TASK == 'top-up'
+        run: npm run demo:tick
