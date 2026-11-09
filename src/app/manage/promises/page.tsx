@@ -14,6 +14,8 @@ export const dynamic = "force-dynamic";
 
 type Row = Awaited<ReturnType<typeof getPromiseTracker>>["broken"][number];
 
+const dayCount = (n: number) => `${n} ${n === 1 ? "day" : "days"}`;
+
 function Table({ rows, today, empty, showDays }: { rows: Row[]; today: string; empty: string; showDays?: "late" | "ahead" }) {
   if (rows.length === 0) return <p className="rounded-[var(--radius-control)] border border-dashed border-rule-strong px-4 py-5 text-ink-2">{empty}</p>;
   return (
@@ -42,8 +44,8 @@ function Table({ rows, today, empty, showDays }: { rows: Row[]; today: string; e
               <td className="figure px-4 py-3 text-right text-lg">{formatINR(r.amount)}</td>
               <td className="px-4 py-3">
                 {formatShortDate(r.date)}
-                {showDays === "late" && <span className="ml-2 text-sm text-late">{daysBetween(r.date, today)} days ago</span>}
-                {showDays === "ahead" && <span className="ml-2 text-sm text-ink-3">in {daysBetween(today, r.date)} days</span>}
+                {showDays === "late" && <span className="ml-2 text-sm text-late">{dayCount(daysBetween(r.date, today))} ago</span>}
+                {showDays === "ahead" && <span className="ml-2 text-sm text-ink-3">in {dayCount(daysBetween(today, r.date))}</span>}
               </td>
               <td className="px-4 py-3">{r.loanStatus === "overdue" ? <Chip tone={dpdTone(r.dpd)}>{r.dpd} DPD</Chip> : <Chip tone="ok">Paid up</Chip>}</td>
               <td className="px-4 py-3 text-sm text-ink-2">{r.reminded ? "Sent" : "–"}</td>

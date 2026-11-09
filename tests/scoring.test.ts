@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { scoreLoan, priorityScore, compareForList, exposureFactor } from "@/lib/scoring/score";
 import { daysToNextBucket, nextBucketBoundary, type ScoreInput } from "@/lib/scoring/features";
 import { MODEL } from "@/lib/scoring/model";
+import { reasonText } from "@/lib/i18n";
 
 const base: ScoreInput = {
   dpd: 15,
@@ -93,5 +94,14 @@ describe("list order", () => {
       { id: "LN-3", manualRank: null, score: 95, dpd: 2 },
     ];
     expect(items.sort(compareForList).map((i) => i.id)).toEqual(["LN-2", "LN-3", "LN-1"]);
+  });
+});
+
+describe("reason wording", () => {
+  it("uses the singular for one day and one time", () => {
+    expect(reasonText({ key: "crossing_soon", params: { next: 31, days: 1 } }, "en")).toBe("Crosses 31 DPD in 1 day");
+    expect(reasonText({ key: "crossing_soon", params: { next: 61, days: 4 } }, "en")).toBe("Crosses 61 DPD in 4 days");
+    expect(reasonText({ key: "unreachable", params: { n: 1 } }, "en")).toBe("Not reachable 1 time this week");
+    expect(reasonText({ key: "crossing_soon", params: { next: 31, days: 1 } }, "hi")).toBe("1 दिन में 31 DPD पार होगा");
   });
 });

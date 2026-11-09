@@ -94,7 +94,7 @@ export default async function LoanPage({ params }: { params: Promise<{ id: strin
                 {score.limitedHistory && <p className="mt-2 text-sm text-due">New loan with little payment history: treat the score with care.</p>}
                 {d.scores.length > 1 && (
                   <p className="mt-3 text-sm text-ink-2">
-                    Last {Math.min(d.scores.length, 30)} scores:{" "}
+                    Last {Math.min(d.scores.length, 10)} scores:{" "}
                     <span className="figure text-base text-ink">
                       {d.scores
                         .slice(0, 10)
