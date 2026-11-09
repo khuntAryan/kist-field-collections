@@ -37,7 +37,8 @@ export function Button({ variant = "primary", size = "md", icon, busy, className
       {...rest}
     >
       {busy ? <Spinner /> : icon}
-      {children}
+      {/* Text sits in its own element, so extensions that rewrite text cannot break React's updates. */}
+      {children !== undefined && children !== null && children !== false && children !== "" ? <span>{children}</span> : null}
     </button>
   );
 }

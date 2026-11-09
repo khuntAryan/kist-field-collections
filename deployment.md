@@ -36,6 +36,7 @@ You need Node.js 20 or newer (22 recommended), npm, and Postgres 14 or newer.
    npm run db:seed
    ```
    The seed simulates 150 days of the lender's overdue book (about 1,400 loans, 9,000 field outcomes and 3,200 promises across 3 branches and 9 officers), then loads today's overdue file through the same import pipeline managers use. It takes about 5 seconds and can be re-run at any time to reset the demo. Dates are anchored to the day you run it.
+   **Network blocks the database?** Campus and office Wi-Fi often block database ports, so `db:migrate` times out (`ETIMEDOUT`). On a Mac with PostgreSQL or Postgres.app installed, run `bash scripts/use-local-postgres.sh` instead of steps 4 and 5. It asks for your local PostgreSQL password, creates a `kist` database, points `.env.local` at it (keeping your Supabase link as a comment), loads the demo data and starts the app.
 5. Start the app.
    ```bash
    npm run dev
