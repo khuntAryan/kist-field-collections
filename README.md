@@ -2,6 +2,8 @@
 
 Kist (किस्त, "instalment") is a field-collections app for Company A, an Indore NBFC lending to small manufacturers and traders. Each morning the branch manager imports the overdue file. Every field officer then opens a short, ordered list of borrowers on their phone, with the reasons behind the order. Officers log what happened in three taps, even with no signal, and managers see roll rates by branch without waiting for Friday's Excel.
 
+**Live demo:** https://kist-field-collections.vercel.app (tap a demo account on the sign-in page). **Setup and deployment:** [deployment.md](deployment.md).
+
 This is the CORE BUILD slice of the brief, end to end: overdue CSV import and assignment, officer priority list, outcome logging, promise tracker and manager roll-rate view. It also covers two of the brief's hard parts: offline logging with sync, and the 8 am to 7 pm contact block.
 
 | Officer app (Hindi, phone) | Manager overview |

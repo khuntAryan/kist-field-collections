@@ -3,7 +3,7 @@
 Kist is a single Next.js app (pages and API together) backed by one Postgres database. In production it runs on Vercel, with functions in Mumbai (`bom1`), and Supabase Postgres in Mumbai (`ap-south-1`), so borrower data stays in India as the DPDP Act constraint in the brief requires.
 
 - GitHub: https://github.com/khuntAryan/kist-field-collections
-- Live app: _add the Vercel URL here after step B4_
+- Live app: https://kist-field-collections.vercel.app (demo password `Kist@Demo2026`, see section D)
 
 ## A. Run it locally
 
@@ -79,7 +79,7 @@ Seeding over the internet takes a minute or two. Re-run the seed on the day of a
 
 ### B4. Check
 
-Open the deployment URL, sign in with a demo account, and confirm the officer list loads. Then add the URL to the top of this file and to the TDD.
+Open `<your URL>/api/health`. It should show `"ok": true`, `"database": "ok"` and `"region": "bom1"`. If it says `empty` or `not_migrated`, run B2 against the production database; if it says `unreachable` or `wrong_password`, recheck `DATABASE_URL`. Then sign in with a demo account and confirm the officer list loads.
 
 ## C. Environment variables
 
