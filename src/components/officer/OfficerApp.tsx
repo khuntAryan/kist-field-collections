@@ -162,7 +162,21 @@ export function OfficerApp({ officer }: { officer: { id: string; name: string; l
     const full = setInterval(() => navigator.onLine && refresh(), FULL_REFRESH_MS);
 
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
-      navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then(() => navigator.serviceWorker.ready)
+        .then((reg) => {
+          // Hand the worker everything this page already loaded, so the app opens offline from the first visit.
+          const urls = [
+            "/app",
+            ...performance
+              .getEntriesByType("resource")
+              .map((e) => e.name)
+              .filter((u) => u.startsWith(location.origin) && (/\/_next\/static\//.test(u) || /\.(woff2|png|svg|ico)$/.test(u))),
+          ];
+          reg.active?.postMessage({ type: "kist-warm-cache", urls });
+        })
+        .catch(() => undefined);
     }
     return () => {
       cancelled = true;

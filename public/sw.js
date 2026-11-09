@@ -4,7 +4,7 @@
  * - The officer page: network first, falling back to the last copy saved on this phone.
  * - API calls are never cached; the app keeps its own data in IndexedDB.
  */
-const VERSION = "v1";
+const VERSION = "v2";
 const STATIC = `kist-static-${VERSION}`;
 const PAGES = `kist-pages-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
@@ -25,6 +25,44 @@ self.addEventListener("activate", (event) => {
       const keep = new Set([STATIC, PAGES]);
       for (const key of await caches.keys()) if (!keep.has(key)) await caches.delete(key);
       await self.clients.claim();
+    })(),
+  );
+});
+
+/*
+ * First visit: the page loaded before this worker existed, so nothing was cached yet.
+ * The page sends the files it already loaded and the worker stores them now, so the app
+ * opens offline even if the officer loses signal right after first signing in.
+ */
+self.addEventListener("message", (event) => {
+  const data = event.data;
+  if (!data || data.type !== "kist-warm-cache" || !Array.isArray(data.urls)) return;
+  event.waitUntil(
+    (async () => {
+      const pages = await caches.open(PAGES);
+      const statics = await caches.open(STATIC);
+      for (const raw of data.urls.slice(0, 300)) {
+        let url;
+        try {
+          url = new URL(raw, self.location.origin);
+        } catch {
+          continue;
+        }
+        if (url.origin !== self.location.origin) continue;
+        try {
+          if (url.pathname === "/app") {
+            const res = await fetch("/app", { credentials: "same-origin" });
+            if (res.ok && !res.redirected) await pages.put("/app", res);
+          } else if (url.pathname.startsWith("/_next/static/") || /\.(woff2|png|svg|ico)$/.test(url.pathname)) {
+            if (!(await statics.match(url.href))) {
+              const res = await fetch(url.href);
+              if (res.ok) await statics.put(url.href, res);
+            }
+          }
+        } catch {
+          /* offline or blocked: the next visit caches it instead */
+        }
+      }
     })(),
   );
 });
